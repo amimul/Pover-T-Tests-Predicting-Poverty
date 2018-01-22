@@ -43,9 +43,27 @@ def per_process_data(df, enforce_cols=None):
     df = pd.get_dummies(df)
     print("After converting categoricals: \t {}".format(df.shape))
 
+    # match test set and training set columns
+    if enforce_cols is not None:
+        to_drop = np.setdiff1d(df.columns, enforce_cols)
+        to_add = np.setdiff1d(enforce_cols, df.columns)
 
+        df.drop(to_drop, axis=1, inplace=True)
+        df = df.assign(**{c: 0 for c in to_add})
 
+    df.fillna(0, inplace=True)
 
+    return df
+
+# convert the data.
+aX_train = per_process_data(a_train.drop('poor', axis=1))
+ay_train = np.ravel(a_train.poor)
+
+bX_train = per_process_data(b_train.drop('poor', axis=1))
+by_train = np.ravel(b_train.poor)
+
+cX_train = per_process_data(c_train.drop('poor', axis=1))
+cy_train = np.ravel(c_train.poor)
 # function to create XGBoost models and perform cross-validation.
 def modelfit(alg, dtrain, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
