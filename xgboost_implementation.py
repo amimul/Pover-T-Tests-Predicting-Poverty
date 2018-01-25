@@ -64,6 +64,7 @@ by_train = np.ravel(b_train.poor)
 
 cX_train = per_process_data(c_train.drop('poor', axis=1))
 cy_train = np.ravel(c_train.poor)
+
 # function to create XGBoost models and perform cross-validation.
 def modelfit(alg, dtrain, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
