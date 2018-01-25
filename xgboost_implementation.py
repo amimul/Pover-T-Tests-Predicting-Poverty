@@ -65,29 +65,38 @@ by_train = np.ravel(b_train.poor)
 cX_train = per_process_data(c_train.drop('poor', axis=1))
 cy_train = np.ravel(c_train.poor)
 
+# split the data for both training and cross validation to evaluate our model
+from sklearn.model_selection import train_test_split
+
+test_size = 0.32
+
+x_train, x_test, y_train, y_test = train_test_split(aX_train, ay_train, test_size=test_size)
+
 # function to create XGBoost models and perform cross-validation.
-def modelfit(alg, aX_train, ay_train, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+def modelfit(alg, xtrain, ytrain, dtest, ytest, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
     if useTrainCV:
         xgb_param = alg.get_xgb_params()
-        xgtrain = xgb.DMatrix(aX_train[predictors], label=ay_train)
+        xgtrain = xgb.DMatrix(xtrain, label=ytrain)
         cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds, metrics='auc', early_stopping_rounds=early_stopping_rounds)
         alg.set_params(n_estimators=cvresult.shape[0])
 
     # fit the algorithm on the data
-    alg.fit(aX_train[predictors], ay_train, eval_metric='auc')
+    alg.fit(xtrain, ytrain, eval_metric='auc')
 
     # predict training set:
-    dtrain_predictions = alg.predict(aX_train[predictors])
-    dtrain_predprob = alg.predict_proba(aX_train[predictors])[:, 1]
+    dtrain_predictions = alg.predict(xtrain)
+    dtrain_predprob = alg.predict_proba(xtrain)[:, 1]
 
     # print model report
     print("\nModel Report")
-    print("Accuracy : %.4g" % metrics.accuracy_score(ay_train, dtrain_predictions))
-    print('AUC Score (Train) : %f' % metrics.roc_auc_score(ay_train, dtrain_predprob))
+    print("Accuracy : %.4g" % metrics.accuracy_score(ytrain, dtrain_predictions))
+    print('AUC Score (Train) : %f' % metrics.roc_auc_score(ytrain, dtrain_predprob))
 
-# choose all predictors except target & IDcols
-predictors = [x for x in aX_train.columns if x not in [ay_train]]
+    # predict on testing data
+    results = alg.predict_proba(dtest)[:, 1]
+    print("AUC Score (Test): %f" % metrics.roc_auc_score(ytest, results))
+
 xgb1 = XGBClassifier(
     learning_rate = 0.1,
     n_estimators = 1000,
@@ -101,4 +110,4 @@ xgb1 = XGBClassifier(
     scale_pos_weight = 1,
     seed = 27
 )
-modelfit(xgb1, aX_train, ay_train, predictors)
+modelfit(xgb1, x_train, y_train, x_test, y_test)
