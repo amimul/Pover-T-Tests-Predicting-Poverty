@@ -111,3 +111,26 @@ xgb1 = XGBClassifier(
     seed = 27
 )
 modelfit(xgb1, x_train, y_train, x_test, y_test)
+
+# let's fine tune our model
+# - we are tuning max_depth and min_child_weight
+
+param_test1 = {
+    'max_depth': [3, 5, 7, 9],
+    'min_child_weight':[1, 3, 5]
+}
+gsearch1 = GridSearchCV(estimator = XGBClassifier(learning_rate = 0.1, n_estimators=140, max_depth=5,min_child_weight=1, gamma=0, subsample=0.8, colsample_bytree=0.8,objective='binary:logistic', nthread=4, scale_pos_weight=1, seed=27),
+param_grid = param_test1, scoring='roc_auc', n_jobs=4, iid=False, cv=5)
+gsearch1.fit(x_train, y_train)
+gsearch1.grid_scores_,gsearch1.best_params_, gsearch1.best_score_
+
+
+# # lets make see how we generalize with real data (test data)
+# ax_test = per_process_data(a_test, enforce_cols=aX_train.columns)
+# bx_test = per_process_data(b_test, enforce_cols=bX_train.columns)
+# cx_test = per_process_data(c_test, enforce_cols=cX_train.columns)
+
+# a_preds = model_a.predict_prob(ax_test)
+
+# # save submission
+# def make_country_sub(preds,)
