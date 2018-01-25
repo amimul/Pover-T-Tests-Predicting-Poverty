@@ -66,32 +66,32 @@ cX_train = per_process_data(c_train.drop('poor', axis=1))
 cy_train = np.ravel(c_train.poor)
 
 # function to create XGBoost models and perform cross-validation.
-def modelfit(alg, dtrain, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+def modelfit(alg, aX_train, ay_train, predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
     if useTrainCV:
         xgb_param = alg.get_xgb_params()
-        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain[target].values)
+        xgtrain = xgb.DMatrix(aX_train[predictors].values, label=ay_train.values)
         cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds, metrics='auc', early_stopping_rounds=early_stopping_rounds, show_progress=False)
         alg.set_params(n_estimators=cvresult.shape[0])
 
     # fit the algorithm on the data
-    alg.fit(dtrain[predictors], dtrain['target'], eval_metric='auc')
+    alg.fit(aX_train[predictors], ay_train, eval_metric='auc')
 
     # predict training set:
-    dtrain_predictions = alg.predict(dtrain[predictors])
-    dtrain_predprob = alg.predict_proba(dtrain[predictors])[:, 1]
+    dtrain_predictions = alg.predict(aX_train[predictors])
+    dtrain_predprob = alg.predict_proba(aX_train[predictors])[:, 1]
 
     # print model report
     print("\nModel Report")
-    print("Accuracy : %.4g" % metrics.accuracy_score(dtrain['target'].values, dtrain_predictions))
-    print('AUC Score (Train) : %f' % metrics.roc_auc_score(dtrain['target'], dtrain_predprob))
+    print("Accuracy : %.4g" % metrics.accuracy_score(ay_train.values, dtrain_predictions))
+    print('AUC Score (Train) : %f' % metrics.roc_auc_score(ay_train, dtrain_predprob))
 
     feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
     feat_imp.plot(kind='bar', title='Feature Importance')
     plt.ylabel('Feature Importance Score')
 
 # choose all predictors except target & IDcols
-predictors = [x for x in train.columns if x not in [target, IDcol]]
+predictors = [x for x in aX_train.columns if x not in [ay_train, IDcol]]
 xgb1 = XGBClassifier(
     learning_rate = 0.1,
     n_estimators = 1000,
@@ -105,4 +105,4 @@ xgb1 = XGBClassifier(
     scale_pos_weight = 1,
     seed = 27
 )
-modelfit(xgb1, train, predictors)
+modelfit(xgb1, aX_train, ay_train, predictors)
