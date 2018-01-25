@@ -70,8 +70,8 @@ def modelfit(alg, aX_train, ay_train, predictors, useTrainCV=True, cv_folds=5, e
 
     if useTrainCV:
         xgb_param = alg.get_xgb_params()
-        xgtrain = xgb.DMatrix(aX_train[predictors].values, label=ay_train.values)
-        cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds, metrics='auc', early_stopping_rounds=early_stopping_rounds, show_progress=False)
+        xgtrain = xgb.DMatrix(aX_train[predictors], label=ay_train)
+        cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds, metrics='auc', early_stopping_rounds=early_stopping_rounds)
         alg.set_params(n_estimators=cvresult.shape[0])
 
     # fit the algorithm on the data
@@ -83,15 +83,11 @@ def modelfit(alg, aX_train, ay_train, predictors, useTrainCV=True, cv_folds=5, e
 
     # print model report
     print("\nModel Report")
-    print("Accuracy : %.4g" % metrics.accuracy_score(ay_train.values, dtrain_predictions))
+    print("Accuracy : %.4g" % metrics.accuracy_score(ay_train, dtrain_predictions))
     print('AUC Score (Train) : %f' % metrics.roc_auc_score(ay_train, dtrain_predprob))
 
-    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
-    feat_imp.plot(kind='bar', title='Feature Importance')
-    plt.ylabel('Feature Importance Score')
-
 # choose all predictors except target & IDcols
-predictors = [x for x in aX_train.columns if x not in [ay_train, IDcol]]
+predictors = [x for x in aX_train.columns if x not in [ay_train]]
 xgb1 = XGBClassifier(
     learning_rate = 0.1,
     n_estimators = 1000,
