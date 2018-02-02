@@ -71,6 +71,8 @@ from sklearn.model_selection import train_test_split
 test_size = 0.32
 
 x_train, x_test, y_train, y_test = train_test_split(aX_train, ay_train, test_size=test_size)
+xb_train, xb_test, yb_train, yb_test = train_test_split(bX_train, by_train, test_size=test_size)
+xc_train, xc_test, yc_train, yc_test = train_test_split(cX_train, cy_train, test_size=test_size)
 
 # function to create XGBoost models and perform cross-validation.
 def modelfit(alg, xtrain, ytrain, dtest, ytest, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
@@ -111,7 +113,10 @@ xgb1 = XGBClassifier(
     scale_pos_weight = 1,
     seed = 27
 )
-modelfit(xgb1, x_train, y_train, x_test, y_test)
+
+a_model = modelfit(xgb1, x_train, y_train, x_test, y_test)
+b_model = modelfit(xgb1, xb_train, yb_train, xb_test, yb_test)
+c_model = modelfit(xgb1, xc_train, yc_train, xc_test, yc_test)
 
 # # lets make see how we generalize with real data (test data)
 ax_test = per_process_data(a_test, enforce_cols=aX_train.columns)
@@ -119,7 +124,9 @@ bx_test = per_process_data(b_test, enforce_cols=bX_train.columns)
 cx_test = per_process_data(c_test, enforce_cols=cX_train.columns)
 
 # make predictions
-a_preds = modelfit.predict(a_test)
+a_preds = a_model.predict_proba(ax_test)
+b_preds = b_model.predict_proba(bx_test)
+c_preds = c_model.predict_proba(cx_test)
 
 # save submission
 def make_country_sub(preds, test_feat, country):
@@ -139,3 +146,6 @@ def make_country_sub(preds, test_feat, country):
 a_sub = make_country_sub(a_preds, ax_test, 'A')
 b_sub = make_country_sub(b_preds, bx_test, 'B')
 c_sub = make_country_sub(c_preds, cx_test, 'C')
+
+# combine our predictions and save the submission file
+submission = pd.concat([a_sub, b_sub, c_sub])
