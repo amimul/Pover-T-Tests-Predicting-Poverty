@@ -98,7 +98,7 @@ def modelfit(alg, xtrain, ytrain, dtest, ytest, useTrainCV=True, cv_folds=5, ear
     print("AUC Score (Test): %f" % metrics.roc_auc_score(ytest, results))
 
 xgb1 = XGBClassifier(
-    learning_rate = 0.1,
+    learning_rate = 0.05,
     n_estimators = 1000,
     max_depth = 7,
     min_child_weight = 3,
@@ -113,25 +113,29 @@ xgb1 = XGBClassifier(
 )
 modelfit(xgb1, x_train, y_train, x_test, y_test)
 
-# let's fine tune our model
-# - we are tuning max_depth and min_child_weight
-
-# param_test1 = {
-#     'max_depth': [3, 5, 7, 9],
-#     'min_child_weight':[1, 3, 5]
-# }
-# gsearch1 = GridSearchCV(estimator = XGBClassifier(learning_rate = 0.1, n_estimators=140, max_depth=5,min_child_weight=1, gamma=0, subsample=0.8, colsample_bytree=0.8,objective='binary:logistic', nthread=4, scale_pos_weight=1, seed=27),
-# param_grid = param_test1, scoring='roc_auc', n_jobs=4, iid=False, cv=5)
-# gsearch1.fit(x_train, y_train)
-# gsearch1.grid_scores_,gsearch1.best_params_, gsearch1.best_score_
-
-
 # # lets make see how we generalize with real data (test data)
-# ax_test = per_process_data(a_test, enforce_cols=aX_train.columns)
-# bx_test = per_process_data(b_test, enforce_cols=bX_train.columns)
-# cx_test = per_process_data(c_test, enforce_cols=cX_train.columns)
+ax_test = per_process_data(a_test, enforce_cols=aX_train.columns)
+bx_test = per_process_data(b_test, enforce_cols=bX_train.columns)
+cx_test = per_process_data(c_test, enforce_cols=cX_train.columns)
 
-# a_preds = model_a.predict_prob(ax_test)
+# make predictions
+a_preds = modelfit.predict(a_test)
 
-# # save submission
-# def make_country_sub(preds,)
+# save submission
+def make_country_sub(preds, test_feat, country):
+    # make sure we code the country correctly
+    country_codes = ['A', 'B', 'C']
+
+    # get just the poor probabilities
+    country_sub = pd.DataFrame(data=preds[:, 1], # proba p=1
+            columns=['poor'],
+            index=test_feat.index)
+    
+    # add the country code for joining later
+    country_sub["country"] = country
+    return country_sub[["country", "poor"]]
+
+# convert preds to data frames
+a_sub = make_country_sub(a_preds, ax_test, 'A')
+b_sub = make_country_sub(b_preds, bx_test, 'B')
+c_sub = make_country_sub(c_preds, cx_test, 'C')
